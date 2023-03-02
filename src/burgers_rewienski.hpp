@@ -17,29 +17,29 @@ public:
 	~BurgersRewienski() {};
 
 	// Function to evaluate solution
-	std::vector<float> solve(float b, float t1);
+	std::vector<double> solve(float b, float t1);
 
 	// Function to write solution to a text file
-	void write_solution(const std::string &name, const std::vector<float> &u);
+	void write_solution(const std::string &name, const std::vector<double> &u);
 
 private:
 	// Function to set the boundary condition
-	void set_boundary_condition(std::vector<std::vector<float>> &u);
+	void set_boundary_condition(std::vector<std::vector<double>> &u);
 
 	// Fucntion to set the initial condition
-	void set_initial_condition(std::vector<std::vector<float>> &u);
+	void set_initial_condition(std::vector<std::vector<double>> &u);
 
     // Function to set the timestep for the current iteration
-    float set_timestep(const std::vector<float> &u) const;
+    double set_timestep(const std::vector<double> &u) const;
 
     // Function to step forwards in time
-    std::vector<float> step_in_time(const std::vector<float> &u, const float &b, const float &dt);
+    std::vector<double> step_in_time(const std::vector<double> &u, const float &b, const double &dt);
 
     // Gridpoints
-    std::vector<float> x;
+    std::vector<double> x;
 
     // Gridsize
-    float dx;
+    double dx;
 
     // Number of elements
     int nx;

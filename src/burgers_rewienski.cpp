@@ -29,21 +29,21 @@ BurgersRewienski::BurgersRewienski(
 
 }
 
-std::vector<float> BurgersRewienski::solve(float b, float t1) 
+std::vector<double> BurgersRewienski::solve(float b, float t1) 
 {
     std::cout << "\n-------------------\nStarting Solve\n-------------------\nEvaluating at t=" << t1 << std::endl;
 
-    std::vector<std::vector<float>> u(2, std::vector<float>(x.size(), 1));  // Computational grid
-    std::vector<float> t;  // Keep track of timesteps
-    float time = 0;
+    std::vector<std::vector<double>> u(2, std::vector<double>(x.size(), 1));  // Computational grid
+    std::vector<double> t;  // Keep track of timesteps
+    double time = 0;
 
     set_boundary_condition(u);
     set_initial_condition(u);
 
     while (time < t1)
     {
-//        float dt = set_timestep(u[0]);
-        float dt = 0.01;
+//        double dt = set_timestep(u[0]);
+        double dt = 0.01;
         t.push_back(dt);
         if (time + dt > t1) dt = t1 - time;
 
@@ -59,7 +59,7 @@ std::vector<float> BurgersRewienski::solve(float b, float t1)
     return u[1];
 }
 
-void BurgersRewienski::set_boundary_condition(std::vector<std::vector<float>> &u)
+void BurgersRewienski::set_boundary_condition(std::vector<std::vector<double>> &u)
 {
 	if (bc_spec.first == "Constant")  // Constant boundary condition
 	{
@@ -70,7 +70,7 @@ void BurgersRewienski::set_boundary_condition(std::vector<std::vector<float>> &u
 	}
 }
 
-void BurgersRewienski::set_initial_condition(std::vector<std::vector<float>> &u)
+void BurgersRewienski::set_initial_condition(std::vector<std::vector<double>> &u)
 {
     if (ic_spec.first == "Constant")  // Constant initial condition
     {
@@ -82,20 +82,20 @@ void BurgersRewienski::set_initial_condition(std::vector<std::vector<float>> &u)
 }
 
 
-float BurgersRewienski::set_timestep(const std::vector<float> &u) const
+double BurgersRewienski::set_timestep(const std::vector<double> &u) const
 {
-    float u_max = 0;
+    double u_max = 0;
     for (int i=0; i < nx; i++)
     {
         u_max = std::abs(u[i]) > u_max ? std::abs(u[i]) : u_max;
     }
-    float dt = CFL * dx / u_max;
+    double dt = CFL * dx / u_max;
     return dt;
 }
 
-std::vector<float> BurgersRewienski::step_in_time(const std::vector<float> &u, const float &b, const float &dt)
+std::vector<double> BurgersRewienski::step_in_time(const std::vector<double> &u, const float &b, const double &dt)
 {
-    std::vector<float> u_next = u;
+    std::vector<double> u_next = u;
     for (int i=1; i < nx; i++)
     {
         u_next[i] = (
@@ -112,7 +112,7 @@ std::vector<float> BurgersRewienski::step_in_time(const std::vector<float> &u, c
     return u_next; 
 }
 
-void BurgersRewienski::write_solution(const std::string &name, const std::vector<float> &u)
+void BurgersRewienski::write_solution(const std::string &name, const std::vector<double> &u)
 {
     std::ofstream file;
     std::string fname = name + ".txt";
