@@ -1,2 +1,4 @@
-/build/lib/
-\Libraries
+Libraries/
+.idea/
+build/
+cmake-build-debug/
