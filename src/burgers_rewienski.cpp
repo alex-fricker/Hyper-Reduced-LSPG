@@ -4,16 +4,17 @@
 #include <cmath>
 
 BurgersRewienski::BurgersRewienski(
-		const int nx, const float x0, const float x1, const float CFL, 
+		const int nx, 
+        const float x0, 
+        const float x1, 
         std::pair<std::string, std::vector<float>> bc_spec,
         std::pair<std::string, std::vector<float>> ic_spec)
 	: nx(nx)
-    , CFL(CFL)
     , bc_spec(bc_spec)
     , ic_spec(ic_spec)
 {
 	dx = (x1 - x0) / (nx - 1);
-	for (int i=0; i < nx; i++)
+    for (int i=0; i <= nx; i++)
     {
 		x.push_back(x0 + i * dx);
 	}
@@ -22,10 +23,9 @@ BurgersRewienski::BurgersRewienski(
         "Initializing Burgers Rewienski class with:\n\tSpacial domain " << x0 << " < x < " << x1
         << "\n\tnx = " << nx
         << "\n\tdx = " << dx
-        << "\n\tCFL = " << CFL
         << "\n\tBC type " << bc_spec.first
         << "\n\tIC type " << ic_spec.first
-        << "\n\tCFD: " << CFL << std::endl;
+        << "\n\n";
 
 }
 
@@ -34,27 +34,26 @@ std::vector<double> BurgersRewienski::solve(float b, float t1)
     std::cout << "\n-------------------\nStarting Solve\n-------------------\nEvaluating at t=" << t1 << std::endl;
 
     std::vector<std::vector<double>> u(2, std::vector<double>(x.size(), 1));  // Computational grid
-    std::vector<double> t;  // Keep track of timesteps
-    double time = 0;
+    // double time = 0;
 
     set_boundary_condition(u);
     set_initial_condition(u);
 
-    while (time < t1)
-    {
-//        double dt = set_timestep(u[0]);
-        double dt = 0.01;
-        t.push_back(dt);
-        if (time + dt > t1) dt = t1 - time;
+    // while (time < t1)
+    // {
+    //     double dt = dx;
+    //     if (time + dt > t1) { dt = t1 - time; }
 
-        u[1] = step_in_time(u[0], b, dt);
-        u[0] = u[1];
+    //     u[1] = step_in_time(u[0], b, dt);
+    //     u[0] = u[1];
 
-        std::cout << "\ttime: " << time 
-            << "\n\tdt: " << dt << "\n" <<std::endl;
+    //     std::cout << "\ttime: " << time 
+    //         << "\n\tdt: " << dt << "\n" <<std::endl;
 
-        time += dt;
-    }
+    //     time += dt;
+    // }
+    double dt = t1;
+    u[1] = step_in_time(u[0], b, dt);
     std::cout << "Done Solving\n" << std::endl;
     return u[1];
 }
@@ -81,35 +80,15 @@ void BurgersRewienski::set_initial_condition(std::vector<std::vector<double>> &u
     }
 }
 
-
-double BurgersRewienski::set_timestep(const std::vector<double> &u) const
-{
-    double u_max = 0;
-    for (int i=0; i < nx; i++)
-    {
-        u_max = std::abs(u[i]) > u_max ? std::abs(u[i]) : u_max;
-    }
-    double dt = CFL * dx / u_max;
-    return dt;
-}
-
 std::vector<double> BurgersRewienski::step_in_time(const std::vector<double> &u, const float &b, const double &dt)
 {
-    std::vector<double> u_next = u;
-    for (int i=1; i < nx; i++)
+    std::vector<double> u1(x.size(), 1);
+    for (int i = 1; i < nx; i++)
     {
-        u_next[i] = (
-            u[i] + 0.02 * exp(x[i] * b) - dt / (4 * dx) * 
-            (
-                pow(u[i+1], 2) - pow(u[i], 2)
-            ) + pow(dt, 2) / (8 * pow(dx, 2)) * 
-            (
-                (u[i+1] + u[i]) * (pow(u[i+1], 2) - pow(u[i], 2)) - 
-                (u[i] + u[i-1]) * (pow(u[i], 2) - pow(u[i-1], 2))
-            )
-        );
+        u1[i] = LW_step2(u, x[i], i, dt, b);
     }
-    return u_next; 
+    u1[u1.size() - 1] = u[u.size() - 2];  // Setting value of ghost cell
+    return u1; 
 }
 
 void BurgersRewienski::write_solution(const std::string &name, const std::vector<double> &u)
@@ -125,8 +104,35 @@ void BurgersRewienski::write_solution(const std::string &name, const std::vector
     file.close();
 }
 
+double BurgersRewienski::flux(const double &u) { return 0.5 * std::pow(u, 2); }
+
+double BurgersRewienski::source_term(const double &x, const float &b) {return 0.02 * std::exp(x * b); }
+
+double BurgersRewienski::LW_step1(
+    const std::vector<double> &u,
+    const double &x,
+    const int i,
+    const double dt,
+    const float b)
+{
+    double u1 = u[i] - dt / dx * (flux(u[i+1]) - flux(u[i])) + dt * source_term(x, b);
+    return u1;
+}
 
 
+double BurgersRewienski::LW_step2(
+    const std::vector<double> &u,
+    const double &x,
+    const int i,
+    const double dt,
+    const float b)
+{
+    double u1 = (
+        u[i] - dt / dx * (flux(LW_step1(u, x, i, dt, b)) - flux(LW_step1(u, x, i, dt, b))) +
+        dt * source_term(x, b)
+    );
+    return u1;
+}
 
 
 
