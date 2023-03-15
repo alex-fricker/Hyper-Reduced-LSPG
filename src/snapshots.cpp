@@ -55,7 +55,6 @@ void Snapshots::compute_pod_basis()
     basis = svd.matrixU();
 }
 
-<<<<<<< HEAD
 const Eigen::MatrixXd Snapshots::get_snapshot_matrix() const { return snapshot_matrix; }
 
 const Eigen::MatrixXd Snapshots::get_basis() const { return basis; }

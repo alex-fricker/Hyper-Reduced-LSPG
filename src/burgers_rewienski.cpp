@@ -35,12 +35,10 @@ std::vector<double> BurgersRewienski::solve(float b, float t1, bool return_resid
 
     std::vector<std::vector<double>> u(2, std::vector<double>(x.size(), 1));  // Computational grid
     double time = 0;
-    double dt = 0.5 * t1;
 
     set_boundary_condition(u);
     set_initial_condition(u);
 
-    double time = 0;
     while (t1 - time > 0.0001)
     {
         double dt = set_timestep(u[0]);
