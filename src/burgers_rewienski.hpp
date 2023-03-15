@@ -43,21 +43,8 @@ private:
     // Evaluate Burgers source term
     double source_term(const double &x, const float &b);
 
-    // Compute step 1 of Lax Wendroff
-    double LW_step1(
-        const std::vector<double> &u,
-        const double &x,
-        const int i,
-        const double dt,
-        const float b);
-
-    // Compute step 2 of Lax Wendroff
-    double LW_step2(
-        const std::vector<double> &u,
-        const double &x,
-        const int i,
-        const double dt,
-        const float b);
+    // Determine timestep for the current iteration
+    double set_timestep(const std::vector<double> &u);
 
     // Gridpoints
     std::vector<double> x;
