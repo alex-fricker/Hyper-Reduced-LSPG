@@ -19,12 +19,12 @@ public:
 	~BurgersRewienski() {};
 
 	// Function to evaluate solution
-	std::vector<double> solve(float b, float t1, bool residual);
+	std::vector<double> solve(float b, float t1);
 
 	// Function to write solution to a text file
 	void write_solution(const std::string &name, const std::vector<double> &u);
 
-    double get_residual();
+    const std::vector<double> get_residual() const;
 
     // Gridsize
     double dx;
@@ -46,7 +46,7 @@ private:
     double flux(const double &u);
 
     // Evaluate Burgers source term
-    double source_term(const double &x, const float &b);
+    double source_term(const double &x, const float &b) const;
 
     // Determine timestep for the current iteration
     double set_timestep(const std::vector<double> &u);
@@ -59,7 +59,7 @@ private:
         const double &u01,
         const double &x,
         const float &b, 
-        const double dt);
+        const double dt) const;
 
     // Gridpoints
     std::vector<double> x;
@@ -70,7 +70,7 @@ private:
     // Initial condition
     std::pair<std::string, std::vector<float>> ic_spec;
 
-    // Normalized residual
-    double normalized_residual;
+    // Normalized residual at each timestep
+    std::vector<double> normalized_residual;
 };
 #endif 

@@ -35,7 +35,7 @@ void Snapshots::build_snapshot_matrix(
     {
         double b = snapshot_points(i);
 
-        std::vector<double> solution = fom_solver.solve(b, t_eval, true);  // Compute FOM solution
+        std::vector<double> solution = fom_solver.solve(b, t_eval);  // Compute FOM solution
         snapshot_matrix.conservativeResize(fom_solver.nx, snapshot_matrix.cols() + 1);
         
         for (int j=0; j < fom_solver.nx; j++)  // Add FOM solution to snapshot matrix
@@ -43,7 +43,7 @@ void Snapshots::build_snapshot_matrix(
             snapshot_matrix(j, i) = solution[j];
         }
 
-        snapshot_residuals(i) = fom_solver.get_residual();  // Adding FOM residual to the vector
+        snapshot_residuals(i) = fom_solver.get_residual().back(); // Adding the residual from the last timestep for the snapshot
     }
 }
 
