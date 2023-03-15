@@ -7,7 +7,9 @@ int run_1D_burgers_rewienski_solution()
     const int nx=1024;
     const float x0=0;
     const float x1=100;
-    const float t1=1;
+    const float t1=0.5;
+    bool residual = false;
+
 
     std::vector<float> bc_vals(1, 1);
     std::vector<float> ic_vals(1, 1);
@@ -21,7 +23,7 @@ int run_1D_burgers_rewienski_solution()
     {
         std::cout << "Running for b=" << b << std::endl;
 
-        std::vector<double> soln = solver.solve(b, t1);
+        std::vector<double> soln = solver.solve(b, t1, residual);
         solver.write_solution("burgers_rewienski_b_" + std::to_string(b), soln);
     }
     return 0;

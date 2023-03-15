@@ -29,11 +29,13 @@ BurgersRewienski::BurgersRewienski(
 
 }
 
-std::vector<double> BurgersRewienski::solve(float b, float t1) 
+std::vector<double> BurgersRewienski::solve(float b, float t1, bool return_residual) 
 {
     std::cout << "\n-------------------\nStarting Solve\n-------------------\nEvaluating at t=" << t1 << std::endl;
 
     std::vector<std::vector<double>> u(2, std::vector<double>(x.size(), 1));  // Computational grid
+    double time = 0;
+    double dt = 0.5 * t1;
 
     set_boundary_condition(u);
     set_initial_condition(u);
@@ -50,6 +52,17 @@ std::vector<double> BurgersRewienski::solve(float b, float t1)
             << "\n\tdt: " << dt << "\n" <<std::endl;
 
         time += dt;
+    }
+
+    // Compute normalized residual
+    if (return_residual)
+    {
+        double R = 0;
+        for (int i = 0; i < nx; i++)
+        {
+            R += std::pow(2, cell_residual(u[1][i], u[0][i], u[1][i+1], u[1][i-1], x[i], b, dt)) * dx;
+        }
+        normalized_residual = std::pow(0.5, R);
     }
 
     std::cout << "Done Solving\n" << std::endl;
@@ -124,6 +137,23 @@ double BurgersRewienski::flux(const double &u) { return 0.5 * std::pow(u, 2); }
 
 double BurgersRewienski::source_term(const double &x, const float &b) {return 0.02 * std::exp(x * b); }
 
+double BurgersRewienski::cell_residual(
+    const double &u11, 
+    const double &u10, 
+    const double &u21,
+    const double &u01,
+    const double &x,
+    const float &b, 
+    const double dt)
+{
+    double R = (u11 - u10) / dt + u11 * (u21 - u01) / (2 * dx) - source_term(x, b);
+    return R;
+}
+
+double BurgersRewienski::get_residual()
+{
+    return normalized_residual;
+}
 
 
 
