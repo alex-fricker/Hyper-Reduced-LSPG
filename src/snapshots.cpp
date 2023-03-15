@@ -34,6 +34,7 @@ void Snapshots::build_snapshot_matrix(
     for (int i = 0; i < n_snapshots; i++)
     {
         double b = snapshot_points(i);
+
         std::vector<double> solution = fom_solver.solve(b, t_eval, true);  // Compute FOM solution
         snapshot_matrix.conservativeResize(fom_solver.nx, snapshot_matrix.cols() + 1);
         
@@ -54,6 +55,7 @@ void Snapshots::compute_pod_basis()
     basis = svd.matrixU();
 }
 
+<<<<<<< HEAD
 const Eigen::MatrixXd Snapshots::get_snapshot_matrix() const { return snapshot_matrix; }
 
 const Eigen::MatrixXd Snapshots::get_basis() const { return basis; }
