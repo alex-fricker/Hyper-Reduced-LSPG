@@ -7,7 +7,7 @@ int run_1D_burgers_rewienski_solution()
     const int nx=1024;
     const float x0=0;
     const float x1=100;
-    const float t1=1;
+    const float t1=0.5;
 
     std::vector<float> bc_vals(1, 1);
     std::vector<float> ic_vals(1, 1);
