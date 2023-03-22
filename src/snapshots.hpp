@@ -29,15 +29,15 @@ public:
     const Eigen::MatrixXd get_basis() const;
     const Eigen::VectorXd get_reference_state() const;
     const Eigen::VectorXd get_snapshot_points() const;
-    const Eigen::VectorXd get_snapshot_residuals() const;
+    const Eigen::MatrixXd get_snapshot_residuals() const;
 
 private:
     BurgersRewienski fom_solver;  // Solver for getting snapshot solutions
     Eigen::MatrixXd snapshot_matrix;  // Snapshot matrix
     Eigen::MatrixXd basis;  // POD basis
     Eigen::VectorXd reference_state;  // Reference state for snapshot matrix
-    Eigen::VectorXd snapshot_points;  // a values in first row, b values in second row
-    Eigen::VectorXd snapshot_residuals;  // Vector to store the residual of each snapshot
+    Eigen::VectorXd snapshot_points;  // evaluation points for the snapshot matrix
+    Eigen::MatrixXd snapshot_residuals;  // Matrix of residuals for each snapshot
 
     double halton_element(int i, int m);
     int i4vec_sum(int n, int a[]);

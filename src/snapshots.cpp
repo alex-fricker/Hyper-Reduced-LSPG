@@ -3,7 +3,6 @@
 #include "snapshots.hpp"
 #include "../Libraries/eigen/Eigen/SVD"
 #include <cmath>
-#include <iomanip>
 
 
 Snapshots::Snapshots(BurgersRewienski &fom_solver)
@@ -15,13 +14,14 @@ Snapshots::Snapshots(BurgersRewienski &fom_solver)
 void Snapshots::build_snapshot_matrix(
     const int n_snapshots, 
     const std::pair<double, double> b_range,
-    const double t_eval
-)
+    const double t_eval)
 {
 
     // Compute Halton sequence for snapshot evaluation points
     snapshot_points.resize(n_snapshots);
-    snapshot_residuals.resize(n_snapshots);
+    snapshot_residuals.resize(fom_solver.nx, n_snapshots);
+
+    std::cout << "Assignining snapshot points\n" << std::endl;
 
     double seq_value;
     for (int i = 0; i < n_snapshots; i++)
@@ -35,6 +35,8 @@ void Snapshots::build_snapshot_matrix(
     {
         double b = snapshot_points(i);
 
+        std::cout << "Computing full order snapshot at b=" << b << std::endl;
+
         std::vector<double> solution = fom_solver.solve(b, t_eval);  // Compute FOM solution
         snapshot_matrix.conservativeResize(fom_solver.nx, snapshot_matrix.cols() + 1);
         
@@ -43,7 +45,7 @@ void Snapshots::build_snapshot_matrix(
             snapshot_matrix(j, i) = solution[j];
         }
 
-        snapshot_residuals(i) = fom_solver.get_residual().back(); // Adding the residual from the last timestep for the snapshot
+        snapshot_residuals(Eigen::placeholders::all, i) = fom_solver.get_residual(); // Adding the solution residual to the residual matrix
     }
 }
 
@@ -63,7 +65,7 @@ const Eigen::VectorXd Snapshots::get_reference_state() const { return reference_
 
 const Eigen::VectorXd Snapshots::get_snapshot_points() const { return snapshot_points; }
 
-const Eigen::VectorXd Snapshots::get_snapshot_residuals() const { return snapshot_residuals; }
+const Eigen::MatrixXd Snapshots::get_snapshot_residuals() const { return snapshot_residuals; }
 
 double Snapshots::halton_element(int i, int m)
 

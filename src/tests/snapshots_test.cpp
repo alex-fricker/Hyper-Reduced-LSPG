@@ -33,7 +33,7 @@ int run_snapshots_test()
     write_matrix(snap_name, snapshot_matrix.get_snapshot_matrix());
     write_matrix(basis_name, snapshot_matrix.get_basis());
     write_vector(points_name, snapshot_matrix.get_snapshot_points());
-    write_vector(residual_name, snapshot_matrix.get_snapshot_residuals());
+    write_matrix(residual_name, snapshot_matrix.get_snapshot_residuals());
 
     return 0;
 }

@@ -33,34 +33,66 @@ std::vector<double> BurgersRewienski::solve(float b, float t1)
 {
     std::cout << "\n-------------------\nStarting Solve\n-------------------\nEvaluating at t=" << t1 << std::endl;
 
-    std::vector<std::vector<double>> u(2, std::vector<double>(x.size(), 1));  // Computational grid
+    std::vector<std::vector<double>> u(2, std::vector<double>(nx, 1));  // Computational grid
     double time = 0;
+    double dt = set_timestep(u[0]);  // Set dt for current timestep
+    Eigen::VectorXd residual(nx);  // Residual in each cell for the current iteration
 
     set_boundary_condition(u);
     set_initial_condition(u);
 
-    while (t1 - time > 0.0001)
+    while (t1 - time >= 0)
     {
-        double dt = set_timestep(u[0]);
-
-        u[1] = step_in_time(u[0], b, dt);
+        u[1] = step_in_time(u[0], b, dt);  // March solution forwards in time
         u[0] = u[1];
 
-        std::cout << "\ttime: " << time 
-            << "\n\tdt: " << dt << "\n" <<std::endl;
-
-        double R = 0;
-        for (int i = 0; i < nx; i++)
+        evaluate_residual(u, residual, dt, b);  // Compute Residual for current timestep
+        double R_norm;
+        for (int i=0; i < nx; i++)
         {
-            R += std::pow(2, cell_residual(u[1][i], u[0][i], u[1][i+1], u[1][i-1], x[i], b, dt)) * dx;
+            R_norm += std::pow(residual[i], 2) * dx;
         }
-        normalized_residual.push_back(std::pow(0.5, R));
+        normalized_residual.push_back(std::pow(R_norm, 0.5));  // Normalize residual to track convergence
 
+        std::cout << "\ttime: " << time
+                  << "\n\tdt: " << dt
+                  << "\n\tResidual: " << normalized_residual.back() << "\n"
+                  << std::endl;
+
+        dt = set_timestep(u[0]);
+        if (time + dt > t1) {dt = t1 - time; }
+        if (dt == 0) { break; }
         time += dt;
     }
-
     std::cout << "Done Solving\n" << std::endl;
+
+    solution_residual = residual;
+
     return u[1];
+}
+
+void BurgersRewienski::evaluate_residual(
+    const  std::vector<std::vector<double>> &u, 
+    Eigen::VectorXd &residual,  
+    const double &dt,
+    const float &b)
+{
+    for (int i = 0; i < nx; i ++)
+    {
+        if (i == 0)  // Compute residual for first cell using forwards difference
+        {
+            residual[0] = (u[1][0] - u[0][0]) / dt + u[1][0] * (u[1][1] - u[1][0]) / dx - source_term(x[0], b);
+        }
+        else if (i == nx-1)  // Compute residual for the last cell using backwards difference
+        {
+            residual[nx-1] = (u[1][nx-1] - u[0][nx-1]) * dt + u[1][nx-1] * (u[1][nx-1] - u[1][nx-2]) / dx - source_term(x[nx-1], b);
+        }
+        else  // Compute residual using central difference for interior cells
+        {
+            residual[i] = (u[1][i] - u[0][i]) / dt * u[0][i] * (u[0][i+1] - u[0][i-1]) / dx - source_term(x[i], b);
+        }
+
+    }
 }
 
 void BurgersRewienski::set_boundary_condition(std::vector<std::vector<double>> &u)
@@ -131,23 +163,8 @@ double BurgersRewienski::flux(const double &u) { return 0.5 * std::pow(u, 2); }
 
 double BurgersRewienski::source_term(const double &x, const float &b) const {return 0.02 * std::exp(x * b); }
 
-double BurgersRewienski::cell_residual(
-    const double &u11, 
-    const double &u10, 
-    const double &u21,
-    const double &u01,
-    const double &x,
-    const float &b, 
-    const double dt) const
-{
-    double R = (u11 - u10) / dt + u11 * (u21 - u01) / (2 * dx) - source_term(x, b);
-    return R;
-}
 
-const std::vector<double> BurgersRewienski::get_residual() const
-{
-    return normalized_residual;
-}
+const Eigen::VectorXd BurgersRewienski::get_residual() const { return solution_residual; }
 
 
 

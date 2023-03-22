@@ -3,6 +3,7 @@
 
 #include<vector>
 #include<string>
+#include "../Libraries/eigen/Eigen/Dense"
 
 class BurgersRewienski
 {
@@ -24,7 +25,13 @@ public:
 	// Function to write solution to a text file
 	void write_solution(const std::string &name, const std::vector<double> &u);
 
-    const std::vector<double> get_residual() const;
+    const Eigen::VectorXd get_residual() const;
+
+    // Normalized residual at each timestep
+    std::vector<double> normalized_residual;
+
+    // System Jacobian for the current iteration
+    Eigen::MatrixXd jacobian;
 
     // Gridsize
     double dx;
@@ -51,15 +58,12 @@ private:
     // Determine timestep for the current iteration
     double set_timestep(const std::vector<double> &u);
 
-    // Evaluate the full order residual
-    double cell_residual(
-        const double &u11, 
-        const double &u10, 
-        const double &u21,
-        const double &u01,
-        const double &x,
-        const float &b, 
-        const double dt) const;
+    // Constructs the residual vector for the current iteration
+    void evaluate_residual(
+    const  std::vector<std::vector<double>> &u, 
+    Eigen::VectorXd &residual,  
+    const double &dt,
+    const float &b);
 
     // Gridpoints
     std::vector<double> x;
@@ -70,7 +74,8 @@ private:
     // Initial condition
     std::pair<std::string, std::vector<float>> ic_spec;
 
-    // Normalized residual at each timestep
-    std::vector<double> normalized_residual;
+    // Residual vector at the last iteration of the solution
+    Eigen::VectorXd solution_residual;
+
 };
 #endif 
