@@ -14,7 +14,7 @@ BurgersRewienski::BurgersRewienski(
     , ic_spec(ic_spec)
 {
 	dx = (x1 - x0) / (nx - 1);
-    for (int i=0; i <= nx; i++)
+    for (int i=0; i <= nx; i++)  // Adding extra cell for the ghost cell
     {
 		x.push_back(x0 + i * dx);
 	}
@@ -36,7 +36,9 @@ std::vector<double> BurgersRewienski::solve(float b, float t1)
     std::vector<std::vector<double>> u(2, std::vector<double>(nx, 1));  // Computational grid
     double time = 0;
     double dt = set_timestep(u[0]);  // Set dt for current timestep
+
     Eigen::VectorXd residual(nx);  // Residual in each cell for the current iteration
+    jacobian.resize(nx, nx);  // Jacobian matrix for the final solution
 
     set_boundary_condition(u);
     set_initial_condition(u);
@@ -67,12 +69,71 @@ std::vector<double> BurgersRewienski::solve(float b, float t1)
     std::cout << "Done Solving\n" << std::endl;
 
     solution_residual = residual;
+    // evaluate_jacobian(u, jacobian, dt, b);
 
-    return u[1];
+    return std::vector<double>(u[1].begin(), u[1].end()-1);
+}
+
+
+
+//------------------------------------ DUMMY --------------------------------//
+// void BurgersRewienski::evaluate_jacobian(
+//     const std::vector<std::vector<double>> &u,
+//     Eigen::MatrixXd &jacobian,
+//     const double &dt,
+//     const double &b)
+// {
+//     std::cout << "Assembling solution Jacobian\n" << std::endl;
+//     auto temp = u[0][0];
+//     auto temp2 = dt * b;
+//     std::cout << temp << temp2 << std::endl;
+//     for (int i = 0; i < nx; i++)
+//     {
+//         for (int j = 0; j < nx; j++)
+//         {
+//             jacobian(i, j) = 1;
+//         }
+//     }
+// }
+
+Eigen::MatrixXd BurgersRewienski::rom_jacobian(const Eigen::VectorXd &u, const float &b)
+{
+    std::cout << "Dummy jacobian" << b << u[0] << std::endl;
+    Eigen::MatrixXd jacobian(nx, nx);
+    for (int i = 0; i < nx; i++)
+    {
+        for (int j = 0; j < nx; j++)
+        {
+            jacobian(i, j) = 1;
+        }
+    }
+    return jacobian;
+}
+//------------------------------------ DUMMY --------------------------------//
+
+
+
+//------------------------------------ NOT WORKING --------------------------------//
+Eigen::VectorXd BurgersRewienski::rom_residual(const Eigen::VectorXd &u, const float &b)
+{   
+    Eigen::VectorXd R(nx);
+    Eigen::VectorXd foo(nx);
+    for (int i = 0; i < nx; i++)
+    {
+        if (i==0)
+        {
+            R[i] = 1 / (2 * dx) * (flux(u[i+1]) - flux(bc_spec.second[0])) - source_term(x[i], b);
+        }
+        else
+        {
+            R[i] = 1 / (2 * dx) * (flux(u[i+1]) - flux(u[i-1])) - source_term(x[i], b);
+        }
+    }
+    return foo;
 }
 
 void BurgersRewienski::evaluate_residual(
-    const  std::vector<std::vector<double>> &u, 
+    const std::vector<std::vector<double>> &u, 
     Eigen::VectorXd &residual,  
     const double &dt,
     const float &b)
@@ -94,6 +155,9 @@ void BurgersRewienski::evaluate_residual(
 
     }
 }
+//------------------------------------ NOT WORKING --------------------------------//
+
+
 
 void BurgersRewienski::set_boundary_condition(std::vector<std::vector<double>> &u)
 {
@@ -163,8 +227,9 @@ double BurgersRewienski::flux(const double &u) { return 0.5 * std::pow(u, 2); }
 
 double BurgersRewienski::source_term(const double &x, const float &b) const {return 0.02 * std::exp(x * b); }
 
-
 const Eigen::VectorXd BurgersRewienski::get_residual() const { return solution_residual; }
+
+const Eigen::MatrixXd BurgersRewienski::get_jacobian() const { return jacobian; }
 
 
 

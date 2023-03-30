@@ -31,8 +31,9 @@ public:
     const Eigen::VectorXd get_snapshot_points() const;
     const Eigen::MatrixXd get_snapshot_residuals() const;
 
-private:
     BurgersRewienski fom_solver;  // Solver for getting snapshot solutions
+
+private:
     Eigen::MatrixXd snapshot_matrix;  // Snapshot matrix
     Eigen::MatrixXd basis;  // POD basis
     Eigen::VectorXd reference_state;  // Reference state for snapshot matrix
