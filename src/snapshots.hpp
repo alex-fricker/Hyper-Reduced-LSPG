@@ -18,8 +18,7 @@ public:
     // Method to build the snapshot matrices
     void build_snapshot_matrix(
         const int n_snapshots,
-        const std::pair<double, double> b_range,
-        const double t_eval
+        const std::pair<double, double> b_range
     );
 
     // Method to compute the POD basis

@@ -2,6 +2,8 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include "misc/eigen_utils.hpp"
+
 
 BurgersRewienski::BurgersRewienski(
 		const int nx, 
@@ -29,207 +31,164 @@ BurgersRewienski::BurgersRewienski(
 
 }
 
-std::vector<double> BurgersRewienski::solve(float b, float t1) 
+Eigen::VectorXd BurgersRewienski::solve(float b) 
 {
-    std::cout << "\n-------------------\nStarting Solve\n-------------------\nEvaluating at t=" << t1 << std::endl;
+    std::cout << "\n-------------------\nStarting Solve\n-------------------\n" << std::endl;
 
-    std::vector<std::vector<double>> u(2, std::vector<double>(nx, 1));  // Computational grid
+    Eigen::VectorXd u0 = Eigen::VectorXd::Ones(nx + 1);  // Solution at pseudo time-step n
+    Eigen::VectorXd u1 = Eigen::VectorXd::Ones(nx + 1);  // Solution at pseudo time-step n+1
+
     double time = 0;
-    double dt = set_timestep(u[0]);  // Set dt for current timestep
+    double dt;  //dt for current timestep
 
-    Eigen::VectorXd residual(nx);  // Residual in each cell for the current iteration
-    jacobian.resize(nx, nx);  // Jacobian matrix for the final solution
+    residual = Eigen::VectorXd::Zero(nx);  // Residual in each cell for the current iteration
+    jacobian = Eigen::MatrixXd::Ones(nx, nx);
 
-    set_boundary_condition(u);
-    set_initial_condition(u);
+    set_boundary_condition(u0, u1);
+    set_initial_condition(u0);
 
-    while (t1 - time >= 0)
+    double tol = 1e-12;
+    unsigned int max_itr = 5e4;
+    unsigned int itr = 0;
+    double residual_norm = 1;
+    while (residual_norm > tol && itr < max_itr)
     {
-        u[1] = step_in_time(u[0], b, dt);  // March solution forwards in time
-        u[0] = u[1];
+        dt = set_timestep(u0);
+        u1 = step_in_time(u0, b, dt);  // March solution forwards in time
 
-        evaluate_residual(u, residual, dt, b);  // Compute Residual for current timestep
-        double R_norm;
-        for (int i=0; i < nx; i++)
+        evaluate_residual(u1, residual, b);  // Compute Residual for current timestep
+        residual_norm = residual.lpNorm<Eigen::Infinity>();  // L_inf norm of the residual
+        normalized_residual.push_back(residual_norm);  // Normalize residual to track convergence
+
+        if (itr % 1000 == 0)
         {
-            R_norm += std::pow(residual[i], 2) * dx;
-        }
-        normalized_residual.push_back(std::pow(R_norm, 0.5));  // Normalize residual to track convergence
-
-        std::cout << "\ttime: " << time
-                  << "\n\tdt: " << dt
+        std::cout << "\tIteration: " << itr
                   << "\n\tResidual: " << normalized_residual.back() << "\n"
                   << std::endl;
+        }
 
-        dt = set_timestep(u[0]);
-        if (time + dt > t1) {dt = t1 - time; }
-        if (dt == 0) { break; }
         time += dt;
+        itr++;
+        u0 = u1;
     }
-    std::cout << "Done Solving\n" << std::endl;
+    std::cout << "-------------------\nDone Solving\n-------------------\n"
+        << "Number of iterations: " << itr
+        << "\nFinal non-linear residual: " << normalized_residual.back() 
+        << std::endl;
 
-    solution_residual = residual;
-    // evaluate_jacobian(u, jacobian, dt, b);
+    evaluate_jacobian(u1, jacobian, b);
 
-    return std::vector<double>(u[1].begin(), u[1].end()-1);
+    return u1(Eigen::seq(0, Eigen::placeholders::last - 1));
 }
 
-
-
-//------------------------------------ DUMMY --------------------------------//
-// void BurgersRewienski::evaluate_jacobian(
-//     const std::vector<std::vector<double>> &u,
-//     Eigen::MatrixXd &jacobian,
-//     const double &dt,
-//     const double &b)
-// {
-//     std::cout << "Assembling solution Jacobian\n" << std::endl;
-//     auto temp = u[0][0];
-//     auto temp2 = dt * b;
-//     std::cout << temp << temp2 << std::endl;
-//     for (int i = 0; i < nx; i++)
-//     {
-//         for (int j = 0; j < nx; j++)
-//         {
-//             jacobian(i, j) = 1;
-//         }
-//     }
-// }
-
-Eigen::MatrixXd BurgersRewienski::rom_jacobian(const Eigen::VectorXd &u, const float &b)
+Eigen::VectorXd BurgersRewienski::step_in_time(const Eigen::VectorXd &u, const float &b, const double &dt)
 {
-    std::cout << "Dummy jacobian" << b << u[0] << std::endl;
-    Eigen::MatrixXd jacobian(nx, nx);
-    for (int i = 0; i < nx; i++)
-    {
-        for (int j = 0; j < nx; j++)
-        {
-            jacobian(i, j) = 1;
-        }
-    }
-    return jacobian;
-}
-//------------------------------------ DUMMY --------------------------------//
-
-
-
-//------------------------------------ NOT WORKING --------------------------------//
-Eigen::VectorXd BurgersRewienski::rom_residual(const Eigen::VectorXd &u, const float &b)
-{   
-    Eigen::VectorXd R(nx);
-    Eigen::VectorXd foo(nx);
-    for (int i = 0; i < nx; i++)
-    {
-        if (i==0)
-        {
-            R[i] = 1 / (2 * dx) * (flux(u[i+1]) - flux(bc_spec.second[0])) - source_term(x[i], b);
-        }
-        else
-        {
-            R[i] = 1 / (2 * dx) * (flux(u[i+1]) - flux(u[i-1])) - source_term(x[i], b);
-        }
-    }
-    return foo;
-}
-
-void BurgersRewienski::evaluate_residual(
-    const std::vector<std::vector<double>> &u, 
-    Eigen::VectorXd &residual,  
-    const double &dt,
-    const float &b)
-{
-    for (int i = 0; i < nx; i ++)
-    {
-        if (i == 0)  // Compute residual for first cell using forwards difference
-        {
-            residual[0] = (u[1][0] - u[0][0]) / dt + u[1][0] * (u[1][1] - u[1][0]) / dx - source_term(x[0], b);
-        }
-        else if (i == nx-1)  // Compute residual for the last cell using backwards difference
-        {
-            residual[nx-1] = (u[1][nx-1] - u[0][nx-1]) * dt + u[1][nx-1] * (u[1][nx-1] - u[1][nx-2]) / dx - source_term(x[nx-1], b);
-        }
-        else  // Compute residual using central difference for interior cells
-        {
-            residual[i] = (u[1][i] - u[0][i]) / dt * u[0][i] * (u[0][i+1] - u[0][i-1]) / dx - source_term(x[i], b);
-        }
-
-    }
-}
-//------------------------------------ NOT WORKING --------------------------------//
-
-
-
-void BurgersRewienski::set_boundary_condition(std::vector<std::vector<double>> &u)
-{
-	if (bc_spec.first == "Constant")  // Constant boundary condition
-	{
-		u[0][0] = bc_spec.second[0];
-        u[1][0] = bc_spec.second[0];
-        u[0][u[0].size()-1] = bc_spec.second[0];
-        u[1][u[0].size()-1] = bc_spec.second[0];
-	}
-}
-
-void BurgersRewienski::set_initial_condition(std::vector<std::vector<double>> &u)
-{
-    if (ic_spec.first == "Constant")  // Constant initial condition
-    {
-        for (int i=0; i < nx; i++)
-        {
-            u[0][i] = ic_spec.second[0];
-        }
-    }
-}
-
-std::vector<double> BurgersRewienski::step_in_time(const std::vector<double> &u, const float &b, const double &dt)
-{
-    std::vector<double> u1(u.size(), 1);
+    Eigen::VectorXd u1 = Eigen::VectorXd::Ones(u.size());
     double uhm;  // u_(n+0.5, j-0.5)
     double uhp;  // u_(n+0.5, j+0.5)
 
     for (int i = 1; i < nx; i++)
     {
-        uhm = 0.5 * (u[i] + u[i-1]) - 0.5 * dt / dx * (flux(u[i]) - flux(u[i-1])) + 0.5 * dt * source_term(x[i] - 0.5 * dx, b);
-        uhp = 0.5 * (u[i+1] + u[i]) - 0.5 * dt / dx * (flux(u[i+1]) - flux(u[i])) + 0.5 * dt * source_term(x[i] + 0.5 * dx, b);
-        u1[i] = u[i] - dt / dx * (flux(uhp) - flux(uhm)) + dt * source_term(x[i], b);  // u_(n+1, j)
+        uhm = half_timestep_minus(u, i, dt, b);  // u_{i-0.5}^{n+0.5}
+        uhp = half_timestep_plus(u, i, dt, b);  // u_{i+0.5}^{n+0.5}
+        u1(i) = u(i) - dt / dx * (flux(uhp) - flux(uhm)) + dt * source_term(x[i], b);  // u_(n+1, j)
     }
-    u1[u1.size() - 1] = u1[u1.size() - 2];  // Setting value of ghost cell
-    u1[0] = u[0];
+    u1(nx) = u1(nx-1);  // Setting value of ghost cell
+    u1(0) = u(0);
     
     return u1; 
 }
 
-double BurgersRewienski::set_timestep(const std::vector<double> &u)
+double BurgersRewienski::half_timestep_plus(const Eigen::VectorXd &u, const unsigned int &i, const double &dt, const float &b) const
 {
-    float u_max = 0;
-    for (int i=0; i < nx; i++)
+    return 0.5 * (u[i+1] + u[i]) - 0.5 * dt / dx * (flux(u[i+1]) - flux(u[i])) + 0.5 * dt * source_term(x[i] + 0.5 * dx, b);
+}
+
+double BurgersRewienski::half_timestep_minus(const Eigen::VectorXd &u, const unsigned int &i, const double &dt, const float &b) const
+{
+    return 0.5 * (u[i] + u[i-1]) - 0.5 * dt / dx * (flux(u[i]) - flux(u[i-1])) + 0.5 * dt * source_term(x[i] - 0.5 * dx, b);
+}
+
+void BurgersRewienski::evaluate_residual(
+    const Eigen::VectorXd &u, 
+    Eigen::VectorXd &residual,
+    const float &b)
+{
+    double dt = set_timestep(u);
+    for (int i = 1; i < nx - 1; i++)
     {
-        u_max = std::abs(u[i]) > u_max ? std::abs(u[i]) : u_max;
+        double uhm = half_timestep_minus(u, i, dt, b);
+        double uhp = half_timestep_plus(u, i, dt, b);
+        double R = 1 / dx * (flux(uhp) - flux(uhm)) - source_term(x[i], b);
+        residual(i) = R;
     }
-    float dt = 0.999999 * dx / u_max;
+}
+
+void BurgersRewienski::evaluate_jacobian(
+    const Eigen::VectorXd &u,
+    Eigen::MatrixXd &jacobian,
+    const double &b)
+{
+    double dt = set_timestep(u);
+    for (int i = 1; i < nx - 1; i++)
+    {
+        jacobian(i, i) = (
+            1 / dx * (0.5 * half_timestep_plus(u, i, dt, b) * (1 + dt / dx * u[i]) - 
+                0.5 * half_timestep_minus(u, i, dt, b) * (1 - dt / dx * u[i])) 
+        );
+        if (i < nx - 1)
+        {
+            jacobian(i, i+1) = (
+                -0.5 / dx * half_timestep_plus(u, i, dt, b) * (1 + dt / dx * u[i])
+            );
+        }
+        if (i > 1)
+        {
+            jacobian(i, i-1) = (
+                0.5 / dx * half_timestep_minus(u, i, dt, b) * (1 - dt / dx * u[i])
+            );
+        }
+    }
+}
+
+void BurgersRewienski::set_boundary_condition(Eigen::VectorXd &u0, Eigen::VectorXd &u1)
+{
+	if (bc_spec.first == "Constant")  // Constant boundary condition
+	{
+		u0(0) = bc_spec.second[0];
+        u1(0) = bc_spec.second[0];
+        u0(nx) = bc_spec.second[0];
+        u1(nx) = bc_spec.second[0];
+	}
+}
+
+void BurgersRewienski::set_initial_condition(Eigen::VectorXd &u)
+{
+    if (ic_spec.first == "Constant")  // Constant initial condition
+    {
+        for (int i=0; i < nx; i++)
+        {
+            u(i) = ic_spec.second[0];
+        }
+    }
+}
+
+double BurgersRewienski::set_timestep(const Eigen::VectorXd &u)
+{
+    float dt = 1 * dx / u.lpNorm<Eigen::Infinity>();
     return dt;
 }
 
-void BurgersRewienski::write_solution(const std::string &name, const std::vector<double> &u)
-{
-    std::ofstream file;
-    std::string fname = name + ".txt";
-    file.open(fname );
-    file << "Value, x position\n";
-    for (int i=0; i < nx; i++)
-    {
-        file << u[i] << ',' << x[i] << "\n";
-    }
-    file.close();
-}
 
-double BurgersRewienski::flux(const double &u) { return 0.5 * std::pow(u, 2); }
+double BurgersRewienski::flux(const double &u) const { return 0.5 * std::pow(u, 2); }
 
 double BurgersRewienski::source_term(const double &x, const float &b) const {return 0.02 * std::exp(x * b); }
 
-const Eigen::VectorXd BurgersRewienski::get_residual() const { return solution_residual; }
+const Eigen::VectorXd BurgersRewienski::get_residual() const { return residual; }
 
 const Eigen::MatrixXd BurgersRewienski::get_jacobian() const { return jacobian; }
+
+const std::vector<double> BurgersRewienski::get_residual_history() const { return normalized_residual; }
 
 
 

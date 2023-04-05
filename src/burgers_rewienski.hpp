@@ -20,35 +20,28 @@ public:
 	~BurgersRewienski() {};
 
 	// Function to evaluate solution
-	std::vector<double> solve(float b, float t1);
-
-	// Function to write solution to a text file
-	void write_solution(const std::string &name, const std::vector<double> &u);
+	Eigen::VectorXd solve(float b);
 
     const Eigen::VectorXd get_residual() const;
 
     const Eigen::MatrixXd get_jacobian() const;
 
-    Eigen::VectorXd rom_residual(const Eigen::VectorXd &u, const float &b);
+    const std::vector<double> get_residual_history() const;
 
-    Eigen::MatrixXd rom_jacobian(const Eigen::VectorXd &u, const float &b);
-
-    // Constructs the residual vector for the current iteration
+    // Constructs the steady state residual vector for the given iteration
     void evaluate_residual(
-        const  std::vector<std::vector<double>> &u, 
-        Eigen::VectorXd &residual,  
-        const double &dt,
+        const  Eigen::VectorXd &u, 
+        Eigen::VectorXd &residual,
         const float &b);
 
-    // // Constructs the jacobian matrix dR/du for the current final solution
-    // void evaluate_jacobian(
-    //     const std::vector<std::vector<double>> &u,
-    //     Eigen::MatrixXd &jacobian,
-    //     const double &dt,
-    //     const double &b);
+    // Constructs the jacobian matrix dR/du for the current final solution
+    void evaluate_jacobian(
+        const Eigen::VectorXd &u,
+        Eigen::MatrixXd &jacobian,
+        const double &b);
 
     // Evaluate Burgers Flux
-    double flux(const double &u);
+    double flux(const double &u) const;
 
     // Evaluate Burgers source term
     double source_term(const double &x, const float &b) const;
@@ -65,28 +58,34 @@ public:
     // Gridsize
     double dx;
 
-    // Normalized residual at each timestep
-    std::vector<double> normalized_residual;
-
 
 private:
 	// Function to set the boundary condition
-	void set_boundary_condition(std::vector<std::vector<double>> &u);
+	void set_boundary_condition(Eigen::VectorXd &u0, Eigen::VectorXd &u1);
 
 	// Fucntion to set the initial condition
-	void set_initial_condition(std::vector<std::vector<double>> &u);
+	void set_initial_condition(Eigen::VectorXd &u);
 
     // Function to step forwards in time
-    std::vector<double> step_in_time(const std::vector<double> &u, const float &b, const double &dt);
+    Eigen::VectorXd step_in_time(const Eigen::VectorXd &u, const float &b, const double &dt);
 
     // Determine timestep for the current iteration
-    double set_timestep(const std::vector<double> &u);
+    double set_timestep(const Eigen::VectorXd &u);
+
+    // Step 1 for the two step Lax-Wendroff, evaluates u_{i+0.5}^{n+0.5}
+    double half_timestep_plus(const Eigen::VectorXd &u, const unsigned int &i, const double &dt, const float &b) const;
+
+    // Step 1 for the two step Lax-Wendroff, evaluates u_{i-0.5}^{n+0.5}
+    double half_timestep_minus(const Eigen::VectorXd &u, const unsigned int &i, const double &dt, const float &b) const;
 
     // Gridpoints
     std::vector<double> x;
 
     // Residual vector at the last iteration of the solution
-    Eigen::VectorXd solution_residual;
+    Eigen::VectorXd residual;
+
+    // Normalized residual at each pseudo-timestep
+    std::vector<double> normalized_residual;
 
     // Jacobian of the current solution
     Eigen::MatrixXd jacobian;

@@ -32,6 +32,7 @@ protected:
 
     double line_search(
         const Eigen::VectorXd &rom_solution,
+        const double &old_reduced_residual,
         const Eigen::VectorXd &search_direction,
         const float &b);
 

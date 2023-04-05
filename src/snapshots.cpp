@@ -13,8 +13,7 @@ Snapshots::Snapshots(BurgersRewienski &fom_solver)
 
 void Snapshots::build_snapshot_matrix(
     const int n_snapshots, 
-    const std::pair<double, double> b_range,
-    const double t_eval)
+    const std::pair<double, double> b_range)
 {
 
     // Compute Halton sequence for snapshot evaluation points
@@ -35,9 +34,9 @@ void Snapshots::build_snapshot_matrix(
     {
         double b = snapshot_points(i);
 
-        std::cout << "Computing full order snapshot at b=" << b << std::endl;
+        std::cout << "\nComputing full order snapshot number " << i << " of " << n_snapshots << " at b=" << b << std::endl;
 
-        std::vector<double> solution = fom_solver.solve(b, t_eval);  // Compute FOM solution
+        Eigen::VectorXd solution = fom_solver.solve(b);  // Compute FOM solution
         snapshot_matrix.conservativeResize(fom_solver.nx, snapshot_matrix.cols() + 1);
         
         for (int j=0; j < fom_solver.nx; j++)  // Add FOM solution to snapshot matrix
